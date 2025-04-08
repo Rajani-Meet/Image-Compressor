@@ -8,6 +8,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [originalSize, setOriginalSize] = useState(0)
   const [compressedSize, setCompressedSize] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef(null)
 
   const formatFileSize = (bytes) => {
@@ -40,9 +41,22 @@ function App() {
     }
   }, [])
 
+  const handleDragEnter = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDragging(false)
+  }, [])
+
   const handleDrop = useCallback((event) => {
     event.preventDefault()
     event.stopPropagation()
+    setIsDragging(false)
     
     if (event.dataTransfer.files && event.dataTransfer.files[0]) {
       handleImageUpload({ target: { files: event.dataTransfer.files } })
@@ -101,13 +115,24 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1><span className="highlight">Image</span> Compressor</h1>
+        <h1>
+          <svg className="logo-icon" viewBox="0 0 24 24" width="32" height="32">
+            <path d="M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <polyline points="7 10 12 15 17 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Image</span> Compressor
+        </h1>
         <p className="subtitle">Optimize your images with just a few clicks</p>
       </header>
       
-      <div className="upload-container" 
-           onDrop={handleDrop} 
-           onDragOver={handleDragOver}>
+      <div 
+        className={`upload-container ${isDragging ? 'dragging' : ''} ${selectedImage ? 'has-image' : ''}`}
+        onDrop={handleDrop} 
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+      >
         <input
           type="file"
           accept="image/*"
@@ -124,7 +149,7 @@ function App() {
                 <polyline points="21 15 16 10 5 21"/>
               </svg>
             </div>
-            <p>Drag & drop your image here or</p>
+            <p>{isDragging ? 'Drop your image here' : 'Drag & drop your image here or'}</p>
             <button 
               onClick={() => fileInputRef.current.click()}
               className="upload-btn"
@@ -136,25 +161,31 @@ function App() {
           <div className="preview-section">
             <div className="images-comparison">
               <div className="image-container original">
-                <h3>Original</h3>
+                <div className="container-header">
+                  <h3>Original</h3>
+                  <p className="file-info">{formatFileSize(originalSize)}</p>
+                </div>
                 <div className="image-wrapper">
                   <img src={selectedImage} alt="Original" className="preview-image" />
                 </div>
-                <p className="file-info">{formatFileSize(originalSize)}</p>
               </div>
               
               {compressedImage && (
                 <div className="image-container compressed">
-                  <h3>Compressed</h3>
+                  <div className="container-header">
+                    <h3>Compressed</h3>
+                    <div className="file-info-wrapper">
+                      <p className="file-info">
+                        {formatFileSize(compressedSize)}
+                      </p>
+                      {isReductionSignificant && (
+                        <span className="reduction-badge">-{compressionRatio}%</span>
+                      )}
+                    </div>
+                  </div>
                   <div className="image-wrapper">
                     <img src={compressedImage} alt="Compressed" className="preview-image" />
                   </div>
-                  <p className="file-info">
-                    {formatFileSize(compressedSize)}
-                    {isReductionSignificant && (
-                      <span className="reduction-badge">-{compressionRatio}%</span>
-                    )}
-                  </p>
                 </div>
               )}
             </div>
@@ -175,6 +206,7 @@ function App() {
                 />
                 <div className="quality-markers">
                   <span>Low</span>
+                  <span>Medium</span>
                   <span>High</span>
                 </div>
               </div>
@@ -182,27 +214,34 @@ function App() {
               <div className="action-buttons">
                 <button 
                   onClick={compressImage} 
-                  className="compress-btn"
+                  className="primary-btn compress-btn"
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
                     <>
-                      <span className="spinner"></span>
-                      Processing...
+                      <div className="spinner"></div>
+                      <span>Processing...</span>
                     </>
                   ) : (
-                    "Compress Image"
+                    <>
+                      <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18">
+                        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 12v9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="m8 17 4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>Compress Image</span>
+                    </>
                   )}
                 </button>
                 
                 {compressedImage && (
-                  <button onClick={handleDownload} className="download-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="button-icon">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                  <button onClick={handleDownload} className="secondary-btn download-btn">
+                    <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <polyline points="7 10 12 15 17 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    Download
+                    <span>Download</span>
                   </button>
                 )}
                 
@@ -212,9 +251,13 @@ function App() {
                     setCompressedImage(null)
                     setQuality(80)
                   }} 
-                  className="reset-btn"
+                  className="text-btn reset-btn"
                 >
-                  Choose Another Image
+                  <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 12h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>Choose Another Image</span>
                 </button>
               </div>
             </div>
@@ -224,6 +267,32 @@ function App() {
       
       <footer className="app-footer">
         <p>Upload, compress, and download - Simple image optimization for everyone</p>
+        <div className="features">
+          <div className="feature-item">
+            <svg className="feature-icon" viewBox="0 0 24 24" width="16" height="16">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Fast Processing</span>
+          </div>
+          <div className="feature-item">
+            <svg className="feature-icon" viewBox="0 0 24 24" width="16" height="16">
+              <path d="M18 8h1a4 4 0 010 8h-1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="6" y1="1" x2="6" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="10" y1="1" x2="10" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="14" y1="1" x2="14" y2="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Privacy-Focused</span>
+          </div>
+          <div className="feature-item">
+            <svg className="feature-icon" viewBox="0 0 24 24" width="16" height="16">
+              <path d="M12 15V3m0 12l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Free to Use</span>
+          </div>
+        </div>
       </footer>
     </div>
   )
